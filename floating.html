@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Loading</title>
+  <style>
+    body {
+      /* Add a background */
+      background-color: rgba(40, 40, 40, 0.7); /* Semi-transparent dark grey */
+      border-radius: 8px; /* Slightly rounded corners */
+
+      margin: 0;
+      padding: 0; /* Remove padding to center spinner better */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 50px; /* Match window height */
+      width: 50px;  /* Match window width */
+      overflow: hidden;
+    }
+    /* Remove old dot styles */
+    /* .loader { ... } */
+    /* .dot { ... } */
+    /* @keyframes bounce { ... } */
+
+    /* Add spinner styles */
+    .spinner {
+      border: 5px solid rgba(255, 255, 255, 0.3); /* Light border */
+      border-top: 5px solid rgba(255, 255, 255, 0.9); /* Darker top border */
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Replace dots with a single spinner element -->
+  <div class="spinner"></div>
+</body>
+</html> 

@@ -1,0 +1,20 @@
+{
+  "name": "text-improver",
+  "version": "0.1.0",
+  "description": "Improve text across applications.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "@huggingface/inference": "^3.7.0",
+    "dotenv": "^16.4.7",
+    "openai": "^4.92.0"
+  }
+}

@@ -1,0 +1,34 @@
+html, body {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent; /* Make window background see-through */
+    overflow: hidden; /* Prevent scrollbars */
+}
+
+#improve-button {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 50%; /* Make it circular */
+    background-color: rgba(240, 240, 240, 0.9);
+    color: #333;
+    font-size: 24px;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s ease;
+}
+
+#improve-button:hover {
+    background-color: rgba(220, 220, 220, 0.95);
+}
+
+#improve-button:active {
+    background-color: rgba(200, 200, 200, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+} 
