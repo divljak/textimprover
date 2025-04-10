@@ -1,0 +1,126 @@
+/* popover.css */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: transparent; 
+  overflow: hidden;
+  color: #e0e0e0; /* Light text on dark background */
+  font-size: 14px;
+}
+
+.popover-content {
+  background-color: #2a2a2a; /* Dark background */
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.popover-body {
+    padding: 12px 15px;
+    flex-grow: 1;
+    overflow-y: auto; /* Scroll if content too long */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center loading state */
+}
+
+#loading-state {
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    color: #aaa;
+}
+
+#suggested-text {
+    margin: 0;
+    line-height: 1.5;
+    white-space: pre-wrap; 
+}
+
+.popover-footer {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid #404040; /* Separator line */
+  gap: 8px;
+}
+
+.popover-footer button {
+  /* Add subtle gradient for glossy effect */
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+  /* Add subtle inner shadow for depth */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 1px rgba(0, 0, 0, 0.1);
+  
+  /* Keep existing button styles */
+  background-color: #4a4a4a; /* Base color */
+  color: #e0e0e0;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px; /* Slightly increase space between icon and text */
+}
+
+.popover-footer button:hover {
+  background-color: #5a5a5a;
+  /* Keep gradient on hover too */
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+}
+
+#regenerate-button svg {
+    width: 16px;
+    height: 16px;
+    /* fill: currentColor; */ /* Remove fill if using stroke */
+    stroke: currentColor; /* Use stroke for line icons */
+    stroke-width: 2px; /* Adjust if needed */
+}
+
+.spacer { flex-grow: 1; } /* Pushes buttons to sides */
+
+#copy-button { /* Renamed from #done-button */
+    /* New styles for Copy button */
+    background-color: #e6e6e6; /* Light grey background */
+    color: #222; /* Dark text color */
+    padding: 5px 15px;
+     /* Keep gradient, adjust for light background */
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+     /* Keep inner shadow */
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+#copy-button:hover { /* Renamed from #done-button:hover */
+    background-color: #cccccc; /* Make hover slightly more distinct */
+     /* Keep gradient on hover too */
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1));
+}
+
+#copy-button svg { /* Style the SVG inside the copy button */
+    width: 16px;
+    height: 16px;
+    /* fill: #222; */ /* Remove fill */
+    stroke: #222; /* Use stroke for line icons */
+    stroke-width: 2px; /* Adjust if needed */
+}
+
+/* Basic Spinner for loading state */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2); /* Light border */
+  border-top: 3px solid rgba(255, 255, 255, 0.7); /* Darker top border */
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  margin-top: 5px; /* Space from text */
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

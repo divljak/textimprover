@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Improvement Suggestion</title>
+  <link rel="stylesheet" href="popover.css">
+</head>
+<body>
+  <div class="popover-content">
+    <div id="loading-state" class="popover-body">
+        Loading suggestion...
+        <!-- Basic spinner -->
+        <div class="spinner"></div>
+    </div>
+    <div id="suggestion-state" class="popover-body" style="display: none;">
+        <p id="suggested-text"></p>
+    </div>
+    <div class="popover-footer">
+      <!-- Regenerate Button -->
+      <button id="regenerate-button" title="Regenerate suggestion">
+        <!-- Updated Stroke-based Regenerate Icon SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+      </button>
+      <span class="spacer"></span> 
+      <!-- Copy Button -->
+      <button id="copy-button" title="Copy suggestion to clipboard">
+          <!-- Rounded Clipboard Icon SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          </svg>
+          Copy
+      </button>
+    </div>
+  </div>
+  <script src="./popover-renderer.js"></script>
+</body>
+</html> 

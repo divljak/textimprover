@@ -4,17 +4,29 @@
   "description": "Improve text across applications.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder --mac"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "@huggingface/inference": "^3.7.0",
     "dotenv": "^16.4.7",
     "openai": "^4.92.0"
+  },
+  "build": {
+    "appId": "com.example.textimprover",
+    "mac": {
+      "target": "dmg"
+    },
+    "files": [
+      "**/*",
+      ".env"
+    ]
   }
 }

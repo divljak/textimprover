@@ -1,14 +1,20 @@
-const { app, BrowserWindow, globalShortcut, clipboard, screen, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, globalShortcut, clipboard, screen, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 require('dotenv').config(); // Load environment variables from .env file
 // const OpenAI = require('openai'); // Remove OpenAI requirement
 // const { paraphraseText, correctGrammarText } = require('./hf-service.js'); // Import BOTH functions
 const { improveText } = require('./hf-service.js'); // Import the single improvement function
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-let mainWindow;
-let floatingWindow = null; // Re-introduce floating window variable, initialize to null
+// Constants
+const POPOVER_WIDTH = 300;
+const MIN_POPOVER_HEIGHT = 120; // Must match renderer's MIN_HEIGHT
+const MAX_POPOVER_HEIGHT = 400; // Must match renderer's MAX_HEIGHT
+
+// Global variables
+let mainWindow; // Main application window (currently unused)
+let popoverWindow = null; // Reference to the popover window
+let lastSelectedText = ''; // Stores text from clipboard on shortcut press
+let tray = null; // Reference to the system tray icon
 
 // --- OpenAI Setup --- 
 // let openai; // Remove OpenAI variable
@@ -27,6 +33,8 @@ let floatingWindow = null; // Re-introduce floating window variable, initialize 
 // }
 // --- End OpenAI Setup --- // Remove entire OpenAI setup block
 
+// Remove mainWindow creation or comment it out if needed later
+/*
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -51,167 +59,274 @@ function createWindow () {
     mainWindow = null;
   });
 }
+*/
 
-// --- Floating Indicator Window --- 
-function createFloatingIndicator() {
-  // Close any existing indicator
-  if (floatingWindow) {
-    floatingWindow.close();
-    floatingWindow = null;
-  }
+// --- Popover Window Creation & Management --- 
+function createPopoverWindow() {
+  closePopoverWindow(); // Close existing popover first
 
   const { x, y } = screen.getCursorScreenPoint();
-  const windowSize = 50; // Size of the floating indicator
+  const popoverWidth = POPOVER_WIDTH; // Use constant
+  const popoverHeight = MIN_POPOVER_HEIGHT; // Use constant
 
-  floatingWindow = new BrowserWindow({
-    width: windowSize,
-    height: windowSize,
-    x: Math.round(x - windowSize / 2), // Centered horizontally
-    y: y + 10,                      // Slightly below cursor
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
+  popoverWindow = new BrowserWindow({
+    width: popoverWidth,
+    height: popoverHeight,
+    minHeight: MIN_POPOVER_HEIGHT, // Set min/max if supported/desired
+    maxHeight: MAX_POPOVER_HEIGHT,
+    x: Math.round(x - popoverWidth / 2), // Centered below cursor
+    y: y + 10,                     
+    frame: false, // Frameless window
+    transparent: true, // Allows for rounded corners via CSS
+    alwaysOnTop: true, // Keep popover above other windows
     resizable: false,
-    movable: false,
-    focusable: false, // Prevent indicator from taking focus
-    skipTaskbar: true, // Don't show in taskbar
-    show: false, // Don't show until ready
+    movable: true, 
+    focusable: true, // Allow interaction
+    skipTaskbar: true, // Don't show in taskbar/Dock
+    show: false, // Initially hidden until content is ready
     webPreferences: {
-      preload: path.join(__dirname, 'preload-floating.js'), // Use the (minimal) preload
-      contextIsolation: true,
-      nodeIntegration: false,
+      preload: path.join(__dirname, 'popover-preload.js'), // Secure way to expose Node APIs to renderer
+      contextIsolation: true, // Recommended security setting
+      nodeIntegration: false, // Recommended security setting
     }
   });
 
-  floatingWindow.loadFile('floating.html');
+  popoverWindow.loadFile('popover.html');
 
-  // Show when ready, but without activating/focusing it
-  floatingWindow.once('ready-to-show', () => {
-    if (floatingWindow && !floatingWindow.isDestroyed()) {
-        floatingWindow.showInactive(); 
+  popoverWindow.once('ready-to-show', () => {
+    if (popoverWindow && !popoverWindow.isDestroyed()) {
+        popoverWindow.show(); 
     }
   });
 
-  // Ensure it's cleaned up if closed manually or unexpectedly
-  floatingWindow.on('closed', () => {
-    floatingWindow = null;
+  // Close if it loses focus (optional, maybe keep it open?)
+  popoverWindow.on('blur', () => {
+      closePopoverWindow();
+  });
+
+  popoverWindow.on('closed', () => {
+    popoverWindow = null;
   });
 }
 
-function closeFloatingIndicator() {
-    if (floatingWindow && !floatingWindow.isDestroyed()) {
-        floatingWindow.close();
+function closePopoverWindow() {
+    if (popoverWindow && !popoverWindow.isDestroyed()) {
+        popoverWindow.close();
     }
-    floatingWindow = null;
+    popoverWindow = null;
 }
-// --- End Floating Indicator Window --- 
+// --- End Popover Window --- 
 
-// --- Refactored Text Improvement Logic ---
-// Moved core logic here to be callable from shortcut or potential future button IPC
+// --- Text Improvement Logic --- 
+// Fetches improved text from the API service
 async function handleImproveTextRequest(textToImprove) {
   console.log("Handling improvement request for:", textToImprove);
+  let result = { success: false, improvedText: null }; // Define result object
 
   if (!textToImprove) {
     console.warn("No text provided for improvement.");
-    return false;
+    result.improvedText = "No text provided."; // Provide feedback
+    return result; 
   }
-
-  let success = false;
 
   try {
     console.log("Sending text to Hugging Face API for general improvement...");
-    const improvedText = await improveText(textToImprove);
+    const improved = await improveText(textToImprove); // Get text from service
 
-    if (improvedText && !improvedText.startsWith("Model is loading") && !improvedText.startsWith("Improvement service")) {
-      console.log("Improved text received:", improvedText);
-      clipboard.writeText(improvedText);
-      console.log("Improved text copied to clipboard. Manual paste needed for now.");
-      success = true;
-    } else if (improvedText) {
-      console.warn("Improvement service message:", improvedText);
-      clipboard.writeText(`Info: ${improvedText}`);
-      success = true; // Consider this a soft success
+    if (improved && !improved.startsWith("Model is loading") && !improved.startsWith("Improvement service")) {
+      console.log("Improved text received:", improved);
+      result.success = true;
+      result.improvedText = improved;
+      // DO NOT WRITE TO CLIPBOARD HERE
+      // clipboard.writeText(improvedText);
+      // console.log("Improved text copied to clipboard. Manual paste needed for now.");
+    } else if (improved) { // Handle info messages from API call
+      console.warn("Improvement service message:", improved);
+      result.success = false; // Treat info message as non-success for replacement
+      result.improvedText = improved;
+      // DO NOT WRITE TO CLIPBOARD HERE
     } else {
       console.error("Hugging Face service did not return improved text (likely an API error).");
-      clipboard.writeText("Error: Could not get improvement from API.");
-      success = false;
+      result.improvedText = "Error: Could not get improvement from API.";
+      result.success = false;
+      // DO NOT WRITE TO CLIPBOARD HERE
     }
   } catch (error) {
     console.error("Error during text improvement process:", error);
-    clipboard.writeText(`Error: Improvement process failed (${error.message || 'Unknown error'})`);
-    success = false;
+    result.improvedText = `Error: Improvement failed (${error.message || 'Unknown error'})`;
+    result.success = false;
+    // DO NOT WRITE TO CLIPBOARD HERE
+  }
+  return result; // Return the result object
+}
+// --- End Text Improvement Logic ---
+
+// --- App Initialization --- 
+app.whenReady().then(() => {
+  // Create the main window (optional, currently disabled)
+  // createWindow();
+
+  // Hide the Dock icon (important for menu bar apps)
+  if (process.platform === 'darwin') { // Only hide dock on macOS
+      app.dock.hide();
   }
 
-  return success;
-}
-// --- End Refactored Logic ---
+  // Create System Tray icon
+  // Use a macOS template image for a standard look
+  // Or provide path.join(__dirname, 'assets/iconTemplate.png') for custom icon
+  // tray = new Tray(path.join(__dirname, 'iconTemplate.png')); // REMOVE THIS PROBLEMATIC LINE
+  // On macOS, template images are automatically handled
+  if (process.platform === 'darwin') {
+    tray = new Tray(nativeImage.createFromNamedImage('NSImageNameActionTemplate'));
+  } else {
+    // Provide a path for other platforms or fallback
+    // For now, let's assume a simple icon exists or use a placeholder
+    // This needs refinement for cross-platform
+    const iconPath = path.join(__dirname, 'assets/icon_16x16.png'); // Example path
+    // Check if file exists before creating tray if needed
+    try {
+        tray = new Tray(iconPath);
+    } catch (e) {
+        console.error("Failed to create tray icon from path:", e);
+        // Handle error: maybe quit, maybe use default behavior
+        tray = new Tray(nativeImage.createEmpty()); // Create empty placeholder
+    }
+  }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  createWindow();
+  // Create context menu for the Tray icon
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Quit Text Improver',
+      click: () => {
+        app.quit(); // Quit the application
+      }
+    }
+    // Add other menu items here later if needed (e.g., Settings)
+  ]);
 
-  // Register a global shortcut listener.
+  tray.setToolTip('Text Improver');
+  tray.setContextMenu(contextMenu);
+
+  // Register Global Shortcut (Cmd+Shift+I)
   const ret = globalShortcut.register('CommandOrControl+Shift+I', async () => {
     console.log('CommandOrControl+Shift+I is pressed');
-    const selectedText = clipboard.readText();
-    console.log('Clipboard text:', selectedText);
+    lastSelectedText = clipboard.readText(); 
+    console.log('Clipboard text stored:', lastSelectedText);
 
-    if (selectedText) {
-      // Show indicator *before* starting the async work
-      createFloatingIndicator(); 
-      try {
-          // Call the refactored improvement logic directly
-          await handleImproveTextRequest(selectedText);
-      } finally {
-          // Close indicator *after* the work is done (success or fail)
-          closeFloatingIndicator();
+    if (lastSelectedText) {
+      // 1. Show popover (starts loading)
+      createPopoverWindow();
+      // 2. Run the improvement request
+      const result = await handleImproveTextRequest(lastSelectedText);
+      // 3. Send the result to the popover (if it still exists)
+      if (popoverWindow && !popoverWindow.isDestroyed()) {
+          popoverWindow.webContents.send('suggestion-result', result);
+      } else {
+          console.log('Popover window closed before sending initial result.');
       }
     } else {
-      console.log('No text on clipboard to improve.');
-      // Optionally close any dangling indicator if shortcut pressed with no text
-      closeFloatingIndicator(); 
+      // Close popover if shortcut pressed with no text
+      closePopoverWindow(); 
     }
   });
 
   if (!ret) {
     console.log('Global shortcut registration failed');
   }
-
-  // Check if the shortcut is registered.
   console.log('Is Cmd+Shift+I registered?', globalShortcut.isRegistered('CommandOrControl+Shift+I'));
 
+  // Remove activate handler if mainWindow is removed
+  /*
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+  */
+});
+// --- End App Initialization ---
+
+// --- IPC Handlers (Communication from Popover) ---
+
+// Handles 'Done'/'Copy' button click from popover
+ipcMain.on('accept-suggestion', (event, text) => {
+    console.log('Main received: accept-suggestion with text:', text);
+    if(text && !text.startsWith("Error:") && !text.startsWith("Failed to")) {
+        clipboard.writeText(text); // Write the ACCEPTED text to clipboard
+    } else {
+        console.warn('Accept called with error/empty text, clipboard not updated.');
+    }
+    closePopoverWindow(); // Close after accepting
 });
 
-// Remove the old ipcMain handler for 'improve-text' as it's now handled directly
-// or refactored into handleImproveTextRequest
-/*
-ipcMain.handle('improve-text', async (event, textToImprove) => {
-  // ... old handler code removed ...
-  // Call the refactored function if you want to keep an IPC mechanism for a button
-  // return await handleImproveTextRequest(textToImprove);
-});
-*/
+// Handles 'Regenerate' button click from popover
+ipcMain.on('regenerate-suggestion', async () => {
+    console.log('Main received: regenerate-suggestion');
+    const originalText = lastSelectedText;
+    if (!originalText) {
+        console.warn('No original text stored for regeneration.');
+        closePopoverWindow();
+        return;
+    }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+    // Re-run improvement logic
+    if (popoverWindow && !popoverWindow.isDestroyed()) {
+        console.log('Calling handleImproveTextRequest for regeneration:', originalText);
+        const result = await handleImproveTextRequest(originalText);
+        
+        // Send new result (ensure window still exists)
+        if (popoverWindow && !popoverWindow.isDestroyed()) {
+            popoverWindow.webContents.send('suggestion-result', result);
+        } else {
+            console.log('Popover window closed before sending regeneration result.');
+        }
+    } else {
+        console.log('Popover window not ready for regeneration result.');
+    }
+});
+
+// Handles close request (e.g., from explicit close button if added, or internal logic)
+ipcMain.on('close-popover', () => {
+    console.log('Main received: close-popover');
+    closePopoverWindow();
+});
+
+// Handles resize request from popover renderer
+ipcMain.on('request-popover-resize', (event, height) => {
+  if (popoverWindow && !popoverWindow.isDestroyed() && height > 0) {
+    // Ensure height respects bounds defined in constants
+    const clampedHeight = Math.max(MIN_POPOVER_HEIGHT, Math.min(height, MAX_POPOVER_HEIGHT));
+    const currentBounds = popoverWindow.getBounds();
+    console.log(`Resizing popover to height: ${clampedHeight}`); // Log clamped height
+    popoverWindow.setBounds({ 
+        width: currentBounds.width, 
+        height: clampedHeight // Use clamped height
+    });
+  }
+});
+
+// --- End IPC Handlers ---
+
+// --- App Lifecycle Event Handlers ---
+
+// Controls app behavior when all windows are closed
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+  // In a menu bar app, we usually DON'T quit when all windows are closed
+  // The app lives in the tray. Only quit via the tray menu or Cmd+Q.
+  // So, we can comment this out or make it conditional.
+  // if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('will-quit', () => {
-  // Unregister all shortcuts.
   globalShortcut.unregisterAll();
-  // Ensure floating indicator is closed on quit
-  closeFloatingIndicator(); 
+  closePopoverWindow(); // Ensure popover is closed on quit
+  // Destroy the tray icon
+  if (tray && !tray.isDestroyed()) {
+    tray.destroy();
+  }
 });
+// --- End App Lifecycle ---
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here. 
+
+// Need to define MIN_HEIGHT globally or pass it around
+// const MIN_HEIGHT = 120; // Define minimum height (should match renderer) 

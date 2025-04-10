@@ -1,5 +1,7 @@
 // Load environment variables from .env file
-require('dotenv').config();
+const path = require('path'); // Import path module
+const envPath = path.join(__dirname, '.env'); // Construct path relative to this script
+require('dotenv').config({ path: envPath }); // Specify the path for dotenv
 
 // Import the Hugging Face Inference API client
 const { HfInference } = require("@huggingface/inference");
@@ -7,9 +9,8 @@ const { HfInference } = require("@huggingface/inference");
 // Check if the API token is loaded
 const hfToken = process.env.HF_ACCESS_TOKEN;
 if (!hfToken) {
-  console.error("Error: Hugging Face API token not found.");
-  console.error("Please create a .env file with HF_ACCESS_TOKEN=<your-token>");
-  process.exit(1); // Exit if the token is missing
+  // Throw an error instead of exiting, so the main process might catch it
+  throw new Error(`Hugging Face API token (HF_ACCESS_TOKEN) not configured or could not be loaded from ${envPath}.`);
 }
 
 // Initialize the Inference API client
@@ -35,12 +36,14 @@ ${inputText} [/INST]`;
     const result = await hf.textGeneration({
       model: instructionModel,
       inputs: prompt,
-      parameters: { // Optional parameters for tuning
-        max_new_tokens: 250, // Limit the length of the generated improvement
-        temperature: 0.7,    // Balance creativity and determinism
-        top_p: 0.9,        // Nucleus sampling
-        do_sample: true,     // Ensure sampling is enabled for temperature/top_p
-        return_full_text: false // Important: Only return the generated part
+      parameters: { 
+        max_new_tokens: 250, 
+        temperature: 0.8,    // Increase temperature slightly more
+        top_p: 0.9,        
+        top_k: 50,         // Add top_k sampling
+        do_sample: true,     
+        return_full_text: false, 
+        use_cache: false   // Attempt to disable cache
       }
     });
 
