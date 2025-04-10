@@ -11,6 +11,9 @@ const hfToken = process.env.HF_ACCESS_TOKEN;
 if (!hfToken) {
   // Throw an error instead of exiting, so the main process might catch it
   throw new Error(`Hugging Face API token (HF_ACCESS_TOKEN) not configured or could not be loaded from ${envPath}.`);
+} else {
+  // Add log to confirm token IS loaded
+  console.log("[hf-service] HF_ACCESS_TOKEN loaded successfully."); 
 }
 
 // Initialize the Inference API client

@@ -100,9 +100,11 @@ function createPopoverWindow() {
   });
 
   // Close if it loses focus (optional, maybe keep it open?)
+  /*
   popoverWindow.on('blur', () => {
       closePopoverWindow();
   });
+  */
 
   popoverWindow.on('closed', () => {
     popoverWindow = null;
@@ -152,7 +154,8 @@ async function handleImproveTextRequest(textToImprove) {
       // DO NOT WRITE TO CLIPBOARD HERE
     }
   } catch (error) {
-    console.error("Error during text improvement process:", error);
+    // Log the specific error object caught during the API call
+    console.error("!!! Error during handleImproveTextRequest try block: !!!", error);
     result.improvedText = `Error: Improvement failed (${error.message || 'Unknown error'})`;
     result.success = false;
     // DO NOT WRITE TO CLIPBOARD HERE
@@ -163,6 +166,7 @@ async function handleImproveTextRequest(textToImprove) {
 
 // --- App Initialization --- 
 app.whenReady().then(() => {
+  console.log("App ready.");
   // Create the main window (optional, currently disabled)
   // createWindow();
 
@@ -171,28 +175,31 @@ app.whenReady().then(() => {
       app.dock.hide();
   }
 
-  // Create System Tray icon
-  // Use a macOS template image for a standard look
-  // Or provide path.join(__dirname, 'assets/iconTemplate.png') for custom icon
-  // tray = new Tray(path.join(__dirname, 'iconTemplate.png')); // REMOVE THIS PROBLEMATIC LINE
-  // On macOS, template images are automatically handled
-  if (process.platform === 'darwin') {
-    tray = new Tray(nativeImage.createFromNamedImage('NSImageNameActionTemplate'));
-  } else {
-    // Provide a path for other platforms or fallback
-    // For now, let's assume a simple icon exists or use a placeholder
-    // This needs refinement for cross-platform
-    const iconPath = path.join(__dirname, 'assets/icon_16x16.png'); // Example path
-    // Check if file exists before creating tray if needed
-    try {
-        tray = new Tray(iconPath);
-    } catch (e) {
-        console.error("Failed to create tray icon from path:", e);
-        // Handle error: maybe quit, maybe use default behavior
-        tray = new Tray(nativeImage.createEmpty()); // Create empty placeholder
+  console.log("Attempting to create Tray...");
+  try {
+    // Create Tray icon
+    if (process.platform === 'darwin') {
+      console.log("Platform is darwin, using nativeImage...");
+      tray = new Tray(nativeImage.createFromNamedImage('NSImageNameActionTemplate'));
+      console.log("Tray created with nativeImage.");
+    } else {
+      console.log("Platform is not darwin, attempting path...");
+      const iconPath = path.join(__dirname, 'assets/icon_16x16.png'); 
+      console.log(`Attempting icon path: ${iconPath}`);
+      // Check if file exists before creating tray if needed
+      // For now, just try and catch
+      tray = new Tray(iconPath);
+      console.log("Tray created with path.");
     }
+  } catch (e) {
+      console.error("!!! FAILED TO CREATE TRAY ICON !!!", e);
+      // Handle error: maybe quit, maybe use default behavior
+      // We might want to prevent the rest of the setup if tray fails
+      app.quit(); // Quit if tray fails, as it's essential for UI
+      return; 
   }
 
+  console.log("Setting Tray tooltip and context menu...");
   // Create context menu for the Tray icon
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -203,10 +210,11 @@ app.whenReady().then(() => {
     }
     // Add other menu items here later if needed (e.g., Settings)
   ]);
-
   tray.setToolTip('Text Improver');
   tray.setContextMenu(contextMenu);
+  console.log("Tray setup complete.");
 
+  console.log("Registering global shortcut...");
   // Register Global Shortcut (Cmd+Shift+I)
   const ret = globalShortcut.register('CommandOrControl+Shift+I', async () => {
     console.log('CommandOrControl+Shift+I is pressed');
@@ -220,7 +228,9 @@ app.whenReady().then(() => {
       const result = await handleImproveTextRequest(lastSelectedText);
       // 3. Send the result to the popover (if it still exists)
       if (popoverWindow && !popoverWindow.isDestroyed()) {
-          popoverWindow.webContents.send('suggestion-result', result);
+          console.log("[Main] Sending string to popover:", result.improvedText); // Log string
+          // Send ONLY the string
+          popoverWindow.webContents.send('suggestion-result', result.improvedText); 
       } else {
           console.log('Popover window closed before sending initial result.');
       }
@@ -274,7 +284,9 @@ ipcMain.on('regenerate-suggestion', async () => {
         
         // Send new result (ensure window still exists)
         if (popoverWindow && !popoverWindow.isDestroyed()) {
-            popoverWindow.webContents.send('suggestion-result', result);
+            console.log("[Main] Sending regenerated string to popover:", result.improvedText); // Log string
+            // Send ONLY the string
+            popoverWindow.webContents.send('suggestion-result', result.improvedText);
         } else {
             console.log('Popover window closed before sending regeneration result.');
         }

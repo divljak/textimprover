@@ -9,5 +9,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   requestResize: (height) => ipcRenderer.send('request-popover-resize', height),
 
   // Receive messages FROM main process
-  onSuggestionResult: (callback) => ipcRenderer.on('suggestion-result', (_event, result) => callback(result))
+  onSuggestionResult: (callback) => {
+    // Expecting a single string argument now
+    const listener = (_event, textString) => callback(textString);
+    ipcRenderer.on('suggestion-result', listener);
+    
+    // Return a function to remove the listener for cleanup (optional but good practice)
+    return () => ipcRenderer.removeListener('suggestion-result', listener);
+  }
 }); 

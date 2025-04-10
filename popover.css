@@ -17,6 +17,8 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  position: relative; /* Needed for absolute positioning of handle */
+  -webkit-app-region: no-drag; /* Make main content non-draggable by default */
 }
 
 .popover-body {
@@ -26,6 +28,8 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center; /* Center loading state */
+    z-index: 2; /* Ensure body is above drag handle */
+    position: relative; /* Ensure z-index works */
 }
 
 #loading-state {
@@ -39,6 +43,7 @@ body {
     margin: 0;
     line-height: 1.5;
     white-space: pre-wrap; 
+    -webkit-app-region: no-drag; /* Keep this */
 }
 
 .popover-footer {
@@ -47,6 +52,8 @@ body {
   padding: 8px 12px;
   border-top: 1px solid #404040; /* Separator line */
   gap: 8px;
+  z-index: 2; /* Ensure footer is above drag handle */
+  position: relative; /* Ensure z-index works */
 }
 
 .popover-footer button {
@@ -67,6 +74,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px; /* Slightly increase space between icon and text */
+  -webkit-app-region: no-drag; /* Keep this */
 }
 
 .popover-footer button:hover {
@@ -110,6 +118,35 @@ body {
     stroke-width: 2px; /* Adjust if needed */
 }
 
+/* Add back #close-button styles */
+#close-button {
+    background: none; 
+    box-shadow: none; 
+    background-image: none;
+    border: none;
+    color: #aaa; 
+    /* font-size: 18px; */ /* Remove font-size */
+    /* font-weight: bold; */ /* Remove font-weight */
+    padding: 5px; /* Adjust padding for icon */
+    border-radius: 4px; 
+    cursor: pointer;
+    display: flex; /* Center icon */
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: no-drag; 
+}
+#close-button svg {
+    width: 14px; /* Adjust icon size */
+    height: 14px;
+    stroke: currentColor; /* Use stroke */
+    stroke-width: 2.5px; /* Match SVG */
+}
+
+#close-button:hover {
+    background-color: #5a5a5a;
+    color: #eee;
+}
+
 /* Basic Spinner for loading state */
 .spinner {
   border: 3px solid rgba(255, 255, 255, 0.2); /* Light border */
@@ -123,4 +160,31 @@ body {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #dcdcdc; 
+    border-radius: 5px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    background-color: #f7f7f7; 
+    color: #333;
+    resize: none; /* Disable resizing */
+    min-height: 80px; /* Min height */
+    /* flex-grow: 1; */ /* Ensure flex-grow is removed/commented */
+}
+
+/* Add drag handle style */
+.drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30px; /* Height of draggable area at the top */
+    /* background-color: rgba(255,0,0,0.2); */ /* Optional: uncomment to visualize */
+    -webkit-app-region: drag; /* THIS is the draggable part */
+    z-index: 1; /* Ensure it's above body but potentially below footer? */
 } 

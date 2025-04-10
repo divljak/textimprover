@@ -4,6 +4,7 @@ const loadingStateDiv = document.getElementById('loading-state');
 const suggestionStateDiv = document.getElementById('suggestion-state');
 const suggestedTextP = document.getElementById('suggested-text');
 const regenerateButton = document.getElementById('regenerate-button');
+const closeButton = document.getElementById('close-button');
 const copyButton = document.getElementById('copy-button');
 const popoverBody = document.querySelector('.popover-body#suggestion-state');
 const popoverFooter = document.querySelector('.popover-footer');
@@ -13,9 +14,12 @@ const MAX_HEIGHT = 400; // Max height for the popover
 const MIN_HEIGHT = 120; // Min height
 
 // Listen for results from the main process
-window.electronAPI.onSuggestionResult((result) => {
-  console.log('Received suggestion result:', result);
-  currentSuggestion = result.improved || 'Error processing text.';
+window.electronAPI.onSuggestionResult((improvedTextString) => {
+  console.log('[Renderer] Received suggestion string:', improvedTextString); 
+  console.log('[Renderer] Type of received data:', typeof improvedTextString);
+
+  // Use the received string directly
+  currentSuggestion = improvedTextString || "Unknown error occurred."; 
   suggestedTextP.textContent = currentSuggestion;
 
   // Switch view
@@ -49,6 +53,12 @@ regenerateButton.addEventListener('click', () => {
   suggestionStateDiv.style.display = 'none';
   // Tell main process to regenerate
   window.electronAPI.regenerateSuggestion();
+});
+
+// Add back closeButton listener
+closeButton.addEventListener('click', () => {
+  console.log('Close button clicked');
+  window.electronAPI.closePopover();
 });
 
 copyButton.addEventListener('click', () => {
